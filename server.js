@@ -11,7 +11,9 @@ connectDB();
 app.use(morgan('dev'))
 app.use(express.json()) //it will parse data from frontend
 
+app.use('/api/v1/admin', require("./routes/adminRoutes"));
 app.use('/api/v1/user', require("./routes/userRoutes"));
+app.use('/api/v1/doctor', require("./routes/doctorRoutes"));
 
 app.listen(8080, () => {  //listen will start the server
     console.log("")
