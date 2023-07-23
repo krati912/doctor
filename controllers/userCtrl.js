@@ -1,7 +1,9 @@
 const userModel = require("../models/userModel");
 const doctorModel = require("../models/doctorModel");
+const appointmentModel = require("../models/appointmentModel");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const moment = require("moment");
 
 //register callback
 const registerController = async (req, res) => {
@@ -64,12 +66,7 @@ const loginController = async (req, res) => {
       } else {
         res.status(200).send({
           success: true,
-          data: {
-            name: user.name,
-            email: user.email,
-            notifcation: user.notifcation,
-            seennotification: user.seennotification
-          },
+          data: user,
         });
       }
     } catch (error) {
@@ -139,4 +136,54 @@ const seenAllNotificationController = async (req, res) => {
   }
 };
 
-module.exports = {  loginController, registerController, authController, applyDoctorController, seenAllNotificationController};
+//GET ALL DOC
+const getAllDoctorsController = async (req, res) => {
+  try {
+    const doctors = await doctorModel.find({ status: "approved" });
+    res.status(200).send({
+      success: true,
+      message: "Docots Lists Fetched Successfully",
+      data: doctors,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).send({
+      success: false,
+      error,
+      message: "Errro WHile Fetching DOcotr",
+    });
+  }
+};
+
+//BOOK APPOINTMENT
+const bookAppointmentController = async (req, res) => {
+  try {
+    req.body.date = moment(req.body.date, "DD-MM-YYYY").toISOString();
+    req.body.time = moment(req.body.time, "HH:mm").toISOString();
+    req.body.status = "pending";
+    const newAppointment = new appointmentModel(req.body);
+    await newAppointment.save();
+    console.log("doctorinfo:: ", req.body.doctorInfo);
+    console.log("userid:: ", req.body.doctorInfo.userId);
+    const user = await userModel.findOne({ _id: req.body.doctorInfo.userId });
+    user.notifcation.push({
+      type: "New-appointment-request",
+      message: `A nEw Appointment Request from ${req.body.userInfo.name}`,
+      onCLickPath: "/user/appointments",
+    });
+    await user.save();
+    res.status(200).send({
+      success: true,
+      message: "Appointment Book succesfully",
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).send({
+      success: false,
+      error,
+      message: "Error While Booking Appointment",
+    });
+  }
+};
+
+module.exports = {  loginController, registerController, authController, applyDoctorController, seenAllNotificationController, getAllDoctorsController, bookAppointmentController};
